@@ -1,0 +1,34 @@
+HelioBio-Social/
+│
+├── backend/                    # FastAPI + Python 3.9+
+│   ├── api/v1/                # Endpoints REST
+│   ├── connectors/            # APIs externas (NOAA, WHO, etc.)
+│   ├── analytics/             # Motor correlacional
+│   ├── ml/                    # Modelos predictivos
+│   ├── database/              # PostgreSQL + TimescaleDB
+│   └── tests/                 # Tests unitarios
+│
+├── frontend/                   # React 18 + TypeScript
+│   ├── src/
+│   │   ├── pages/             # Dashboard, Analysis, etc.
+│   │   ├── components/        # Charts, Widgets
+│   │   ├── hooks/             # Custom React hooks
+│   │   └── services/          # API client
+│   └── tests/
+│
+├── analysis/                   # Jupyter Notebooks
+│   ├── notebooks/             # Análisis exploratorios
+│   ├── scripts/               # Scripts batch
+│   └── results/               # Plots, reportes
+│
+├── data/                      # Almacenamiento local
+│   ├── raw/                   # Datos sin procesar
+│   ├── processed/             # Datos limpios
+│   └── exports/               # Datasets públicos
+│
+├── docs/                      # Documentación
+│   ├── API_REFERENCE.md
+│   ├── SCIENTIFIC_METHOD.md
+│   └── papers/
+│
+└── deployment/                # Docker, K8s, Terraform
