@@ -1,4 +1,3 @@
----
 
 ## 🤝 Contribuir
 
@@ -36,5 +35,3 @@ git commit -m "feat: añade análisis wavelet para ciclos 27 días"
 # 4. Push y crea Pull Request
 git push origin feature/analisis-wavelets
 ```
-
----
