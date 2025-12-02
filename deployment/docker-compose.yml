@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with TimescaleDB extension
+  database:
+    image: timescale/timescaledb:latest-pg15
+    container_name: heliobio_db
+    environment:
+      POSTGRES_USER: heliobio
+      POSTGRES_PASSWORD: heliobio_secure_password
+      POSTGRES_DB: heliobio
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - heliobio_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heliobio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: heliobio_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - heliobio_network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: heliobio_backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://heliobio:heliobio_secure_password@database:5432/heliobio
+      REDIS_URL: redis://redis:6379/0
+      NOAA_API_KEY: ${NOAA_API_KEY}
+      NASA_API_KEY: ${NASA_API_KEY}
+      ENVIRONMENT: production
+      DEBUG: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - heliobio_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: heliobio_frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - heliobio_network
+    command: npm start
+    restart: unless-stopped
+
+  # Jupyter Lab for analysis
+  jupyter:
+    build:
+      context: ./analysis
+      dockerfile: ../docker/Dockerfile.jupyter
+    container_name: heliobio_jupyter
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      DATABASE_URL: postgresql+asyncpg://heliobio:heliobio_secure_password@database:5432/heliobio
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./analysis:/home/jovyan/work
+      - ./data:/home/jovyan/data
+      - ./backend:/home/jovyan/backend
+    depends_on:
+      - database
+    networks:
+      - heliobio_network
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+    restart: unless-stopped
+
+  # Nginx reverse proxy (optional, for production)
+  nginx:
+    image: nginx:alpine
+    container_name: heliobio_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/build:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - heliobio_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  heliobio_network:
+    driver: bridge
