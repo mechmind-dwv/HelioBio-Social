@@ -54,7 +54,7 @@ services:
       DEBUG: "false"
     ports:
       - "8000:8000"
-    volumes:
+    volumes:Backend Setup
       - ./backend:/app
       - ./data:/app/data
     depends_on:
