@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "heliobio-social"
+version = "3.0.0"
+description = "El primer sistema open-source que correlaciona actividad solar con salud mental global usando datos oficiales de la OMS, CDC y NOAA."
+authors = ["MechMind-DWV and Contributors"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "backend"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0.post1"}
+sqlalchemy = "^2.0.23"
+psycopg2-binary = "^2.9.9"
+alembic = "^1.12.1"
+pydantic = "^2.5.2"
+pydantic-settings = "^2.1.0"
+requests = "^2.31.0"
+pandas = "^2.1.3"
+numpy = "^1.26.2"
+scipy = "^1.11.4"
+statsmodels = "^0.14.0"
+scikit-learn = "^1.3.2"
+tensorflow = {version = "^2.15.0", optional = true}
+pytorch = {version = "^2.1.1", optional = true}
+redis = "^5.0.1"
+python-dotenv = "^1.0.0"
+pytrends = "^4.9.2"
+praw = "^7.7.1"
+# Añadir más dependencias según se implementen los conectores
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+mypy = "^1.7.1"
+flake8 = "^6.1.0"
+black = "^23.11.0"
+isort = "^5.12.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api
