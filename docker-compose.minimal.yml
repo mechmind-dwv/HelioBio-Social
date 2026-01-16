@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: heliobio
+      POSTGRES_USER: researcher
+      POSTGRES_PASSWORD: science123
+    volumes:
+      - ./database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./analysis:/home/jovyan/work
+      - ./data:/home/jovyan/data
+    environment:
+      - JUPYTER_TOKEN=heliobio
