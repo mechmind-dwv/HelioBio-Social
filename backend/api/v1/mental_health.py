@@ -1,68 +1,65 @@
 # backend/api/v1/mental_health.py
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from datetime import date
+from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
+from pydantic import BaseModel
+
+from database import get_db
+from database.models.mental_health_data import MentalHealthData, MentalHealthSummary
 
 router = APIRouter()
 
-# Definición del modelo de respuesta (similar al ejemplo del README)
-class MentalHealthData(BaseModel):
+# Schemas Pydantic
+class MentalHealthDataCreate(BaseModel):
     region: str
-    date: date
-    psychiatric_admissions: int
-    suicide_rate: float
-    bipolar_episodes: int
-    depression_index: float
+    psychiatric_admissions: int | None = None
+    suicide_rate: float | None = None
+    bipolar_episodes: int | None = None
+    depression_index: float | None = None
 
-# Simulación de datos
-SIMULATED_DATA = [
-    {
-      "region": "Europe",
-      "date": date(2025, 3, 15),
-      "psychiatric_admissions": 1247,
-      "suicide_rate": 12.3,
-      "bipolar_episodes": 89,
-      "depression_index": 67.2
-    },
-    {
-      "region": "USA",
-      "date": date(2025, 3, 15),
-      "psychiatric_admissions": 850,
-      "suicide_rate": 14.5,
-      "bipolar_episodes": 60,
-      "depression_index": 71.0
-    }
-]
+class MentalHealthDataResponse(BaseModel):
+    time: datetime
+    region: str
+    psychiatric_admissions: int | None
+    suicide_rate: float | None
+    bipolar_episodes: int | None
+    depression_index: float | None
+    
+    class Config:
+        from_attributes = True
 
-@router.get("/global", response_model=List[MentalHealthData], summary="Obtener datos de salud mental global")
-def get_global_mental_health_data():
-    """
-    Simula la obtención de los datos de salud mental global más recientes.
-    """
-    return SIMULATED_DATA
+# Endpoints
+@router.get("/", response_model=List[MentalHealthDataResponse])
+def get_mental_health_data(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Obtiene datos de salud mental"""
+    data = db.query(MentalHealthData).offset(skip).limit(limit).all()
+    return data
 
-@router.get("/historical", response_model=List[MentalHealthData], summary="Obtener datos históricos de salud mental")
-def get_historical_mental_health_data(region: str = "Europe", start_date: date = date(2020, 1, 1), end_date: date = date(2025, 1, 1)):
-    """
-    Simula la obtención de datos históricos de salud mental para una región específica.
-    """
-    # En una implementación real, esto consultaría la base de datos
-    return [
-        {
-            "region": region,
-            "date": start_date,
-            "psychiatric_admissions": 1000,
-            "suicide_rate": 10.0,
-            "bipolar_episodes": 50,
-            "depression_index": 60.0
-        },
-        {
-            "region": region,
-            "date": end_date,
-            "psychiatric_admissions": 1200,
-            "suicide_rate": 12.0,
-            "bipolar_episodes": 70,
-            "depression_index": 65.0
-        }
-    ]
+@router.post("/", response_model=MentalHealthDataResponse)
+def create_mental_health_data(
+    data: MentalHealthDataCreate,
+    db: Session = Depends(get_db)
+):
+    """Crea un nuevo registro de salud mental"""
+    db_data = MentalHealthData(**data.model_dump())
+    db.add(db_data)
+    db.commit()
+    db.refresh(db_data)
+    return db_data
+
+@router.get("/summary")
+def get_summary(db: Session = Depends(get_db)):
+    """Obtiene el resumen global de salud mental"""
+    summary = db.query(MentalHealthSummary).order_by(
+        MentalHealthSummary.date.desc()
+    ).first()
+    
+    if not summary:
+        raise HTTPException(status_code=404, detail="No hay datos de resumen")
+    
+    return summary

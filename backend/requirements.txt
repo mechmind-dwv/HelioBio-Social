@@ -1,6 +1,6 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0.post1
-SQLAlchemy==2.0.23
+sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 alembic==1.12.1
 pydantic==2.5.2
@@ -15,14 +15,7 @@ redis==5.0.1
 python-dotenv==1.0.0
 pytrends==4.9.2
 praw==7.7.1
-# Dependencias de ML (se pueden instalar por separado o incluir aquí)
-tensorflow==2.15.0
-torch==2.1.1
-torchvision==0.16.1
-torchaudio==2.1.1
-# Dependencias de desarrollo
-pytest==7.4.3
-mypy==1.7.1
-flake8==6.1.0
-black==23.11.0
-isort==5.12.0
+# tensorflow>=2.16.1  # Comentado por ahora, instalar después si es necesario
+httpx>=0.24.0
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

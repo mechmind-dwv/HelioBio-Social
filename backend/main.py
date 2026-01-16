@@ -1,26 +1,24 @@
 # backend/main.py
 # Punto de entrada principal para la aplicación FastAPI
-
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
-from backend.config import settings
+
+from config import settings
+from database import Base, engine
+from api.v1 import mental_health
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Simulación de eventos de inicio/apagado
+# Eventos de inicio/apagado
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Evento de inicio
     logger.info("Aplicación HelioBio-Social iniciándose...")
-    # Aquí se inicializarían la conexión a la DB, Redis, etc.
-    # from backend.database.database import init_db
-    # init_db()
+    # Aquí se inicializarían conexiones a DB, Redis, etc.
     yield
-    # Evento de apagado
     logger.info("Aplicación HelioBio-Social apagándose...")
 
 app = FastAPI(
@@ -32,8 +30,8 @@ app = FastAPI(
 
 # Configuración de CORS
 origins = [
-    "http://localhost:3000",  # Frontend
-    "http://localhost:8000",  # Backend
+    "http://localhost:3000",
+    "http://localhost:8222",
 ]
 
 app.add_middleware(
@@ -47,27 +45,29 @@ app.add_middleware(
 # Rutas de prueba
 @app.get("/")
 def read_root():
-    return {"message": "Bienvenido a la API de HelioBio-Social", "version": app.version}
+    return {
+        "message": "Bienvenido a la API de HelioBio-Social",
+        "version": app.version
+    }
 
 @app.get("/status")
 def get_status():
-    # Aquí se verificaría el estado de la DB, Redis, etc.
-    return {"status": "ok", "environment": settings.ENVIRONMENT, "db_connection": "simulated_ok", "redis_connection": "simulated_ok"}
+    return {
+        "status": "ok",
+        "environment": settings.ENVIRONMENT,
+        "database": "SQLite connected"
+    }
 
-# Incluir routers de API
-from backend.api.v1 import solar, mental_health
-app.include_router(solar.router, prefix="/api/v1/solar", tags=["solar"])
-app.include_router(mental_health.router, prefix="/api/v1/mental", tags=["mental_health"])
+@app.include_router(
+    mental_health.router,
+    prefix="/api/v1/mental-health",
+    tags=["mental_health"]
+)
+# Incluir routers cuando estén listos
+# from api.v1 import solar, mental_health
+# app.include_router(solar.router, prefix="/api/v1/solar", tags=["solar"])
+# app.include_router(mental_health.router, prefix="/api/v1/mental", tags=["mental_health"])
 
-# Si se ejecuta como script (para CLI commands)
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "run-analysis":
-        logger.info(f"Ejecutando análisis con parámetros: {sys.argv[2:]}")
-        # Lógica de CLI aquí
-    elif len(sys.argv) > 1 and sys.argv[1] == "generate-report":
-        logger.info(f"Generando reporte con parámetros: {sys.argv[2:]}")
-        # Lógica de CLI aquí
-    else:
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=settings.BACKEND_PORT)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8222)
