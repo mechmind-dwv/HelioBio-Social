@@ -1,0 +1,22 @@
+{
+  "system": {
+    "name": "HelioBio-Social v1.0.0",
+    "version": "1.0.0",
+    "description": "Sistema de Análisis Heliobiológico y Comportamiento Social"
+  },
+  "solar_sources": {
+    "noaa": "https://services.swpc.noaa.gov/json/",
+    "nasa": "https://api.nasa.gov/DONKI/",
+    "silso": "http://www.sidc.be/silso/"
+  },
+  "analysis": {
+    "correlation_methods": ["pearson", "spearman", "granger", "wavelet"],
+    "time_windows": ["daily", "weekly", "monthly", "11_year_cycle"],
+    "confidence_threshold": 0.05
+  },
+  "chizhevsky_parameters": {
+    "solar_max_amplification": 1.8,
+    "geomagnetic_sensitivity": 0.7,
+    "social_crispation_threshold": 0.65
+  }
+}

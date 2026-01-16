@@ -1,0 +1,260 @@
+openapi: 3.1.0
+info:
+  title: "HelioBio-Social API"
+  description: "Sistema de Análisis Heliobiológico con Alertas Inteligentes - Versión 1.3.0"
+  version: "1.3.0"
+  contact:
+    name: "HelioBio-Social Research Team"
+    email: "research@heliobio-social.org"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+
+servers:
+  - url: http://localhost:8000
+    description: Servidor de desarrollo local
+  - url: https://api.heliobio-social.org/v1
+    description: Servidor de producción
+
+paths:
+  /:
+    get:
+      summary: "Servir Dashboard Principal"
+      description: "Endpoint principal que sirve la interfaz web del dashboard"
+      responses:
+        '200':
+          description: "Dashboard HTML servido correctamente"
+          content:
+            text/html:
+              schema:
+                type: string
+              example: "<!DOCTYPE html><html>...</html>"
+
+  /api/health:
+    get:
+      summary: "Verificar Estado del Sistema"
+      description: "Endpoint de salud que muestra el estado de todos los componentes del sistema"
+      responses:
+        '200':
+          description: "Estado del sistema obtenido correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /api/solar/current:
+    get:
+      summary: "Obtener Actividad Solar Actual"
+      description: "Retorna los datos más recientes de actividad solar con interpretación Chizhevsky"
+      responses:
+        '200':
+          description: "Datos solares obtenidos correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SolarResponse'
+
+  /api/social/analysis:
+    get:
+      summary: "Obtener Análisis Social Actual"
+      description: "Retorna el análisis más reciente del comportamiento social colectivo"
+      responses:
+        '200':
+          description: "Análisis social obtenido correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialResponse'
+
+  /api/social/trending:
+    get:
+      summary: "Obtener Temas Trending"
+      description: "Retorna los temas más populares y tendencias actuales en redes sociales"
+      responses:
+        '200':
+          description: "Temas trending obtenidos correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendingResponse'
+
+  /api/correlation/realtime:
+    get:
+      summary: "Obtener Correlación en Tiempo Real"
+      description: "Calcula y retorna la correlación actual entre actividad solar y comportamiento social"
+      responses:
+        '200':
+          description: "Correlación calculada correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationResponse'
+
+  /api/alerts/active:
+    get:
+      summary: "Obtener Alertas Activas"
+      description: "Retorna todas las alertas activas en el sistema"
+      responses:
+        '200':
+          description: "Alertas activas obtenidas correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveAlertsResponse'
+
+  /api/alerts/stats:
+    get:
+      summary: "Obtener Estadísticas de Alertas"
+      description: "Retorna estadísticas sobre las alertas del sistema"
+      responses:
+        '200':
+          description: "Estadísticas de alertas obtenidas correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertStatsResponse'
+
+  /api/alerts/{alert_id}/acknowledge:
+    post:
+      summary: "Reconocer Alerta"
+      description: "Marca una alerta como reconocida por el usuario"
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: "Alerta reconocida correctamente"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "acknowledged"
+                  alert_id:
+                    type: integer
+                    example: 1
+        '404':
+          description: "Alerta no encontrada"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/historical/data:
+    get:
+      summary: "Obtener Datos Históricos"
+      description: "Retorna datos históricos para análisis temporal"
+      parameters:
+        - name: hours
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 168
+            default: 6
+          description: "Número de horas de datos históricos a retornar"
+      responses:
+        '200':
+          description: "Datos históricos obtenidos correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoricalResponse'
+
+  /api/predict/crispation:
+    get:
+      summary: "Predecir Crispación Social"
+      description: "Genera predicciones de crispación social usando modelos ML"
+      parameters:
+        - name: hours_ahead
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 168
+            default: 24
+          description: "Horizonte de predicción en horas"
+      responses:
+        '200':
+          description: "Predicción generada correctamente"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionResponse'
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        components:
+          type: object
+          properties:
+            solar_monitor:
+              type: string
+            social_analyzer:
+              type: string
+            alert_system:
+              type: string
+            chizhevsky_engine:
+              type: string
+            ml_models:
+              type: string
+        alert_stats:
+          $ref: '#/components/schemas/AlertStats'
+
+    SolarResponse:
+      type: object
+      properties:
+        solar_activity:
+          $ref: '#/components/schemas/SolarActivity'
+        chizhevsky_interpretation:
+          type: string
+        data_source:
+          type: string
+
+    SocialResponse:
+      type: object
+      properties:
+        social_analysis:
+          $ref: '#/components/schemas/SocialAnalysis'
+        collective_mood:
+          type: string
+        data_source:
+          type: string
+
+    # ... más esquemas para los otros responses
+
+  responses:
+    ServerError:
+      description: Error interno del servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT token para autenticación (futura implementación)"
+
+security:
+  - BearerAuth: []

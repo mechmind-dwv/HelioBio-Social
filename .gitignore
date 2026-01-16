@@ -1,0 +1,59 @@
+# Entornos virtuales
+venv/
+backend/venv/
+heliobio_env/
+env/
+ENV/
+
+# Archivos de entorno
+.env
+backend/.env
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Archivos de Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Bases de datos SQLite
+*.db
+*.sqlite3
+heliobio.db
+heliobio_new.db
+backend/heliobio.db
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Directorios de logs
+logs/
+
+# Directorios de upload
+upload/
+
+# Paquetes de Node
+node_modules/
+
+# Backups
+backups/

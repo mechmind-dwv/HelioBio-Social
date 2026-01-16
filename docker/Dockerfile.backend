@@ -1,0 +1,20 @@
+# Dockerfile para el Backend (FastAPI)
+
+# Usar una imagen base de Python
+FROM python:3.11-slim
+
+# Establecer el directorio de trabajo
+WORKDIR /app
+
+# Copiar el archivo de dependencias y el código
+COPY backend/requirements.txt .
+COPY . /app
+
+# Instalar dependencias
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Exponer el puerto de la aplicación
+EXPOSE 8000
+
+# Comando para iniciar la aplicación (se sobrescribe en docker-compose)
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
