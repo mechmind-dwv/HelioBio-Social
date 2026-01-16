@@ -1,0 +1,103 @@
+# Dockerfile para entorno científico reproducible de HelioBio-Social
+# Incluye todas las dependencias para análisis estadístico, ML y visualización
+
+FROM jupyter/datascience-notebook:python-3.10
+
+LABEL maintainer="HelioBio-Social Research Team <research@heliobio.social>"
+LABEL description="Entorno científico reproducible para análisis HelioBio-Social"
+LABEL version="1.0.0"
+LABEL license="MIT"
+
+# Instalar system dependencies
+USER root
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    wget \
+    gcc \
+    g++ \
+    make \
+    libssl-dev \
+    libffi-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    zlib1g-dev \
+    libhdf5-dev \
+    libopenblas-dev \
+    liblapack-dev \
+    gfortran \
+    graphviz \
+    texlive \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    texlive-science \
+    dvipng \
+    cm-super \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cambiar a usuario jovyan
+USER ${NB_UID}
+
+# Crear directorio de trabajo
+WORKDIR /home/jovyan/work
+
+# Copiar requirements
+COPY requirements_scientific.txt /tmp/requirements_scientific.txt
+
+# Instalar Python packages científicas
+RUN pip install --no-cache-dir \
+    -r /tmp/requirements_scientific.txt \
+    jupyterlab-git \
+    jupyterlab-lsp \
+    python-lsp-server \
+    jupyter-resource-usage \
+    jupyterlab-system-monitor
+
+# Instalar kernels adicionales
+RUN pip install --no-cache-dir \
+    ipykernel \
+    irkernel \
+    && R -e "install.packages('IRkernel')" \
+    && R -e "IRkernel::installspec(user = FALSE)"
+
+# Configurar Jupyter extensions
+RUN jupyter labextension install \
+    @jupyter-widgets/jupyterlab-manager \
+    @jupyterlab/git \
+    @jupyterlab/toc \
+    @jupyterlab/debugger
+
+# Configurar Git
+RUN git config --global user.email "researcher@heliobio.social" \
+    && git config --global user.name "HelioBio-Social Researcher"
+
+# Crear estructura de directorios científicos
+RUN mkdir -p \
+    /home/jovyan/work/data/raw \
+    /home/jovyan/work/data/processed \
+    /home/jovyan/work/analysis/notebooks \
+    /home/jovyan/work/analysis/scripts \
+    /home/jovyan/work/analysis/results \
+    /home/jovyan/work/reports \
+    /home/jovyan/work/paper
+
+# Copiar scripts de análisis
+COPY --chown=${NB_UID}:${NB_GID} analysis/ /home/jovyan/work/analysis/
+
+# Copiar datos de ejemplo
+COPY --chown=${NB_UID}:${NB_GID} data/scientific/ /home/jovyan/work/data/scientific/
+
+# Configurar entorno
+ENV PYTHONPATH="/home/jovyan/work:$PYTHONPATH"
+ENV JUPYTER_ENABLE_LAB=yes
+ENV RESTARTABLE=yes
+
+# Exponer puerto
+EXPOSE 8888
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8888/api || exit 1
+
+# Comando de inicio
+CMD ["start-notebook.sh", "--NotebookApp.token='heliobio'", "--NotebookApp.password=''"]

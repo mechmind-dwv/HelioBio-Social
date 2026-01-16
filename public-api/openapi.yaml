@@ -1,0 +1,681 @@
+openapi: 3.0.3
+info:
+  title: HelioBio-Social Scientific API
+  description: |
+    API científica pública para acceso a datos de correlación solar-salud mental.
+    Proporciona acceso a datasets completos (2010-2025) para investigación académica.
+    
+    ## Características Principales
+    - Datos solares históricos (NOAA)
+    - Datos de salud mental global (OMS/CDC)
+    - Correlaciones pre-calculadas
+    - Herramientas de análisis estadístico
+    - Datos en formatos estándar (JSON, CSV, Parquet)
+    
+    ## Uso Ético
+    Esta API es para investigación científica únicamente.
+    Por favor, cite apropiadamente: HelioBio-Social Research Team. (2025).
+    
+  version: 1.0.0
+  contact:
+    name: HelioBio-Social Research Team
+    email: api@heliobio.social
+    url: https://heliobio.social
+  license:
+    name: Creative Commons Attribution 4.0 International
+    url: https://creativecommons.org/licenses/by/4.0/
+  
+servers:
+  - url: https://api.heliobio.social/v1
+    description: Production server
+  - url: https://sandbox-api.heliobio.social/v1
+    description: Sandbox server for testing
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+tags:
+  - name: Solar Data
+    description: Datos de actividad solar históricos y en tiempo real
+  - name: Mental Health
+    description: Indicadores de salud mental global
+  - name: Correlation Analysis
+    description: Análisis de correlación pre-calculados
+  - name: Scientific Tools
+    description: Herramientas para análisis científico
+  - name: Metadata
+    description: Metadatos y documentación del dataset
+
+paths:
+  # Datos solares
+  /solar/historical:
+    get:
+      tags: [Solar Data]
+      summary: Obtener datos solares históricos
+      description: |
+        Datos de actividad solar diarios para el período 2010-2025.
+        Incluye índice Kp, manchas solares, viento solar, y eventos de tormenta.
+      parameters:
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2015-01-01"
+          description: Fecha de inicio (YYYY-MM-DD)
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2020-12-31"
+          description: Fecha de fin (YYYY-MM-DD)
+        - name: variables
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [kp_index, sunspot_number, solar_wind_speed, bz_component, proton_density]
+            example: ["kp_index", "sunspot_number"]
+          description: Variables específicas a incluir
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, csv, parquet]
+            default: json
+          description: Formato de respuesta
+      responses:
+        '200':
+          description: Datos solares históricos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SolarDataResponse'
+            text/csv:
+              schema:
+                type: string
+              example: |
+                date,kp_index,sunspot_number
+                2015-01-01,2.3,45.6
+                2015-01-02,1.8,46.2
+        '400':
+          description: Parámetros inválidos
+        '429':
+          description: Límite de tasa excedido
+  
+  /solar/realtime:
+    get:
+      tags: [Solar Data]
+      summary: Obtener datos solares en tiempo real
+      description: |
+        Datos de actividad solar en tiempo real (últimas 24 horas).
+        Actualizado cada 15 minutos desde NOAA SWPC.
+      responses:
+        '200':
+          description: Datos solares en tiempo real
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealtimeSolarData'
+  
+  # Datos de salud mental
+  /mental-health/indicators:
+    get:
+      tags: [Mental Health]
+      summary: Obtener indicadores de salud mental
+      description: |
+        Indicadores de salud mental global por región y período.
+        Datos de OMS Global Health Observatory y CDC WONDER.
+      parameters:
+        - name: indicator
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [depression_prevalence, anxiety_prevalence, suicide_rate, bipolar_prevalence, schizophrenia_prevalence]
+          description: Indicador de salud mental
+        - name: region
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [GLOBAL, EUROPE, AMERICAS, AFRICA, WESTERN_PACIFIC, EASTERN_MEDITERRANEAN]
+            default: GLOBAL
+          description: Región geográfica
+        - name: start_year
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 2010
+            maximum: 2025
+            default: 2010
+          description: Año de inicio
+        - name: end_year
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 2010
+            maximum: 2025
+            default: 2025
+          description: Año de fin
+      responses:
+        '200':
+          description: Datos de salud mental
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentalHealthDataResponse'
+  
+  # Análisis de correlación
+  /correlation/calculate:
+    post:
+      tags: [Correlation Analysis]
+      summary: Calcular correlación personalizada
+      description: |
+        Calcula correlaciones entre variables solares y de salud mental
+        con métodos estadísticos avanzados.
+        
+        **Métodos disponibles:**
+        - pearson: Correlación de Pearson
+        - spearman: Correlación de Spearman (no paramétrica)
+        - granger: Test de causalidad de Granger
+        - wavelet: Coherencia wavelet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrelationRequest'
+      responses:
+        '200':
+          description: Resultados del análisis de correlación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationResponse'
+        '400':
+          description: Parámetros inválidos o datos insuficientes
+  
+  /correlation/precalculated:
+    get:
+      tags: [Correlation Analysis]
+      summary: Obtener correlaciones pre-calculadas
+      description: |
+        Acceso a correlaciones pre-calculadas del dataset completo.
+        Incluye diferentes ventanas temporales y métodos.
+      parameters:
+        - name: solar_variable
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [kp_index, sunspot_number, solar_wind_speed]
+          description: Variable solar
+        - name: mental_variable
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [depression_prevalence, suicide_rate, psychiatric_admissions]
+          description: Variable de salud mental
+        - name: window_months
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [3, 6, 12]
+          description: Ventana temporal en meses
+      responses:
+        '200':
+          description: Correlaciones pre-calculadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrecalculatedCorrelations'
+  
+  # Herramientas científicas
+  /tools/statistical-test:
+    post:
+      tags: [Scientific Tools]
+      summary: Ejecutar test estadístico
+      description: |
+        Ejecuta tests estadísticos sobre datos proporcionados.
+        
+        **Tests disponibles:**
+        - t_test: Test t de Student
+        - anova: Análisis de varianza
+        - mann_whitney: Test U de Mann-Whitney
+        - chi_square: Test chi-cuadrado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatisticalTestRequest'
+      responses:
+        '200':
+          description: Resultados del test estadístico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatisticalTestResponse'
+  
+  /tools/time-series-analysis:
+    post:
+      tags: [Scientific Tools]
+      summary: Análisis de series temporales
+      description: |
+        Análisis avanzado de series temporales.
+        
+        **Métodos disponibles:**
+        - decomposition: Descomposición estacional (STL)
+        - stationarity: Test de estacionariedad (ADF, KPSS)
+        - forecasting: Pronóstico con modelos ARIMA/ETS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeSeriesAnalysisRequest'
+      responses:
+        '200':
+          description: Resultados del análisis de series temporales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeSeriesAnalysisResponse'
+  
+  # Metadata y documentación
+  /metadata/dataset:
+    get:
+      tags: [Metadata]
+      summary: Obtener metadatos del dataset
+      description: |
+        Metadatos completos del dataset científico siguiendo
+        estándares FAIR (Findable, Accessible, Interoperable, Reusable).
+      responses:
+        '200':
+          description: Metadatos del dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetMetadata'
+  
+  /metadata/validation:
+    get:
+      tags: [Metadata]
+      summary: Reporte de validación del dataset
+      description: |
+        Reporte completo de validación científica del dataset.
+        Incluye criterios de calidad, estadísticas y resultados.
+      responses:
+        '200':
+          description: Reporte de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationReport'
+  
+  /documentation/codebook:
+    get:
+      tags: [Metadata]
+      summary: Libro de códigos (codebook)
+      description: |
+        Documentación completa de todas las variables del dataset.
+        Incluye definiciones, unidades, rangos y fuentes.
+      responses:
+        '200':
+          description: Libro de códigos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Codebook'
+
+components:
+  schemas:
+    SolarDataResponse:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SolarDataPoint'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+    
+    SolarDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Fecha de observación
+          example: "2020-06-15"
+        kp_index:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 9
+          description: Índice Kp geomagnético
+          example: 3.7
+        sunspot_number:
+          type: number
+          format: float
+          minimum: 0
+          description: Número de manchas solares
+          example: 45.6
+        solar_wind_speed:
+          type: number
+          format: float
+          minimum: 200
+          maximum: 1000
+          description: Velocidad del viento solar (km/s)
+          example: 425.3
+        bz_component:
+          type: number
+          format: float
+          description: Componente Bz del campo magnético interplanetario (nT)
+          example: -2.4
+        proton_density:
+          type: number
+          format: float
+          minimum: 0
+          description: Densidad de protones (partículas/cm³)
+          example: 5.2
+        geomagnetic_storm:
+          type: boolean
+          description: Indica si hubo tormenta geomagnética (Kp ≥ 5)
+          example: false
+        storm_intensity:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: Intensidad de tormenta (0=none, 1=minor, 2=moderate, 3=severe)
+          example: 0
+    
+    MentalHealthDataResponse:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MentalHealthDataPoint'
+    
+    MentalHealthDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Fecha (generalmente mes-año)
+          example: "2020-06-01"
+        region:
+          type: string
+          description: Región geográfica
+          example: "EUROPE"
+        depression_prevalence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Prevalencia de depresión (%)
+          example: 4.8
+        anxiety_prevalence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Prevalencia de ansiedad (%)
+          example: 3.9
+        suicide_rate:
+          type: number
+          format: float
+          minimum: 0
+          description: Tasa de suicidio (por 100,000 habitantes)
+          example: 11.2
+        bipolar_prevalence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          description: Prevalencia de trastorno bipolar (%)
+          example: 0.6
+        data_source:
+          type: string
+          description: Fuente de los datos
+          example: "WHO Global Health Observatory"
+        quality_rating:
+          type: number
+          format: float
+          minimum: 1
+          maximum: 10
+          description: Calificación de calidad de datos (1-10)
+          example: 8.5
+    
+    CorrelationRequest:
+      type: object
+      required: [solar_variable, mental_variable, method]
+      properties:
+        solar_variable:
+          type: string
+          enum: [kp_index, sunspot_number, solar_wind_speed, bz_component]
+          description: Variable solar a analizar
+        mental_variable:
+          type: string
+          enum: [depression_prevalence, anxiety_prevalence, suicide_rate, psychiatric_admissions]
+          description: Variable de salud mental a analizar
+        method:
+          type: string
+          enum: [pearson, spearman, granger, wavelet]
+          description: Método estadístico a utilizar
+        start_date:
+          type: string
+          format: date
+          description: Fecha de inicio (opcional, default=2010-01-01)
+        end_date:
+          type: string
+          format: date
+          description: Fecha de fin (opcional, default=2025-12-31)
+        region:
+          type: string
+          enum: [GLOBAL, EUROPE, AMERICAS, AFRICA, WESTERN_PACIFIC, EASTERN_MEDITERRANEAN]
+          description: Región geográfica (opcional, default=GLOBAL)
+        control_variables:
+          type: array
+          items:
+            type: string
+          description: Variables de control a incluir
+          example: ["seasonality", "covid_period"]
+    
+    CorrelationResponse:
+      type: object
+      properties:
+        method:
+          type: string
+          description: Método utilizado
+        correlation_coefficient:
+          type: number
+          format: float
+          minimum: -1
+          maximum: 1
+          description: Coeficiente de correlación
+        p_value:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Valor p de significancia estadística
+        confidence_interval:
+          type: object
+          properties:
+            lower:
+              type: number
+              format: float
+            upper:
+              type: number
+              format: float
+          description: Intervalo de confianza del 95%
+        n_observations:
+          type: integer
+          minimum: 0
+          description: Número de observaciones utilizadas
+        lag_optimal:
+          type: integer
+          description: Lag temporal óptimo (si aplica)
+        interpretation:
+          type: string
+          description: Interpretación científica del resultado
+        warning:
+          type: string
+          description: Advertencias o limitaciones del análisis
+    
+    DatasetMetadata:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título del dataset
+        version:
+          type: string
+          description: Versión del dataset
+        publication_date:
+          type: string
+          format: date
+          description: Fecha de publicación
+        license:
+          type: string
+          description: Licencia del dataset
+        doi:
+          type: string
+          description: DOI del dataset
+        creators:
+          type: array
+          items:
+            $ref: '#/components/schemas/Creator'
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Palabras clave
+        temporal_coverage:
+          type: object
+          properties:
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+          description: Cobertura temporal
+        spatial_coverage:
+          type: array
+          items:
+            type: string
+          description: Cobertura espacial
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariableMetadata'
+    
+    ResponseMetadata:
+      type: object
+      properties:
+        api_version:
+          type: string
+          description: Versión de la API
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp de la respuesta
+        query_parameters:
+          type: object
+          description: Parámetros de consulta utilizados
+    
+    PaginationInfo:
+      type: object
+      properties:
+        total_records:
+          type: integer
+          description: Número total de registros
+        page:
+          type: integer
+          description: Página actual
+        page_size:
+          type: integer
+          description: Tamaño de página
+        total_pages:
+          type: integer
+          description: Número total de páginas
+    
+    Creator:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre del creador
+        affiliation:
+          type: string
+          description: Afiliación
+        role:
+          type: string
+          description: Rol en el proyecto
+    
+    VariableMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre de la variable
+        description:
+          type: string
+          description: Descripción de la variable
+        unit:
+          type: string
+          description: Unidad de medida
+        source:
+          type: string
+          description: Fuente de los datos
+        data_type:
+          type: string
+          enum: [continuous, categorical, binary]
+          description: Tipo de datos
+        range:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+          description: Rango de valores
+    
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Clave API para acceso a endpoints avanzados.
+        Regístrate en https://heliobio.social/api-register para obtener una clave.
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT para usuarios registrados.
+        Obtén un token en /auth/login
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []

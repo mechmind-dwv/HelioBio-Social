@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # Servidor Jupyter para análisis
+  jupyter-scientific:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.scientific
+    container_name: heliobio-scientific
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./analysis:/home/jovyan/work/analysis
+      - ./data:/home/jovyan/work/data
+      - ./reports:/home/jovyan/work/reports
+      - ./paper:/home/jovyan/work/paper
+      - ./notebooks:/home/jovyan/work/notebooks
+      - jupyter-data:/home/jovyan/.jupyter
+    environment:
+      - JUPYTER_TOKEN=heliobio
+      - JUPYTER_ENABLE_LAB=yes
+      - PYTHONPATH=/home/jovyan/work
+      - TZ=UTC
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # API pública
+  api-public:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: heliobio-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/scientific:/app/data/scientific
+      - ./public-api:/app/public-api
+    environment:
+      - DATASET_PATH=/app/data/scientific
+      - API_KEY=scientific_access
+      - RATE_LIMIT_PER_MINUTE=60
+      - LOG_LEVEL=INFO
+    depends_on:
+      - jupyter-scientific
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+
+  # Base de datos para caching
+  postgres-scientific:
+    image: postgres:15-alpine
+    container_name: heliobio-postgres
+    environment:
+      - POSTGRES_DB=heliobio
+      - POSTGRES_USER=researcher
+      - POSTGRES_PASSWORD=heliobio123
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/postgres/init_scientific.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U researcher"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para caching
+  redis-scientific:
+    image: redis:7-alpine
+    container_name: heliobio-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+
+  # Metabase para visualización (opcional)
+  metabase:
+    image: metabase/metabase:latest
+    container_name: heliobio-metabase
+    ports:
+      - "3001:3000"
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=heliobio
+      - MB_DB_PORT=5432
+      - MB_DB_HOST=postgres-scientific
+      - MB_DB_USER=researcher
+      - MB_DB_PASS=heliobio123
+    depends_on:
+      - postgres-scientific
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+
+  # Monitorización
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: heliobio-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: heliobio-grafana
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=heliobio
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - heliobio-network
+    restart: unless-stopped
+
+volumes:
+  jupyter-data:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  heliobio-network:
+    driver: bridge
